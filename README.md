@@ -111,7 +111,7 @@ Initial Access;Credential Theft;Phishing
 ```
 Entity,RealEmail,SpoofedEmails
 Robert Chen - Harborview Title,robert.chen@harborviewtitle.com,r.chen@harborview-title-co.com
-David Park - Attorney,davidpark@dparklaw.com,d.park@dparklaw-legal.com
+David Park - Attorney,davidpark@dparklegallaw.com,d.park@dparklegallaw-legal.com
 Carol Nguyen - CPA,c.nguyen@nguyencpagroup.com,c.nguyen@nguyen-cpa-advisors.com
 ```
 
