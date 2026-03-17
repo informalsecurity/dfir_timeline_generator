@@ -26,7 +26,7 @@ Key findings noted by threat actor:
 - Closing scheduled March 14 2024 for 4400 Commerce Boulevard
 - Title company: Harborview Title - robert.chen@harborviewtitle.com
 - Buyer: Marcus Webb - mwebb@webbcommercial.com
-- Attorney: David Park - davidpark@dparklaw.com
+- Attorney: David Park - davidpark@dparklegallaw.com
 - CPA: Carol Nguyen - c.nguyen@nguyencpagroup.com
 - Estimated transaction value: $2.3M",Reconnaissance;Mailbox Access
 2024-01-08 09:48:00,MALICIOUS INBOX RULE CREATED,"Description: THREAT_ACTOR creates first malicious inbox rule to intercept and hide financial and closing-related emails from Sarah Mitchell.
@@ -46,7 +46,7 @@ Visible to User: No",Persistence;Inbox Rule;Defense Evasion
 2024-01-09 14:22:00,LEGITIMATE EMAIL - CLOSING UPDATE,"Description: Sarah Mitchell sends routine closing coordination email to title company and attorney confirming the March 14 closing date. This is a legitimate email authored by Sarah from her office workstation.
 
 From: smitchell@pinnaclerealty.com
-To: robert.chen@harborviewtitle.com; davidpark@dparklaw.com
+To: robert.chen@harborviewtitle.com; davidpark@dparklegallaw.com
 Subject: 4400 Commerce Blvd - Closing Confirmation March 14
 Message: Hi Robert and David - just confirming we are still on track for March 14 closing. Please let me know if you need anything from our side before then. Looking forward to getting this one across the finish line.
 Attachments: None",Legitimate Activity;Closing Coordination
@@ -77,7 +77,7 @@ Key Intelligence Gathered:
 
 From: smitchell@pinnaclerealty.com
 To: robert.chen@harborviewtitle.com
-CC: mwebb@webbcommercial.com; davidpark@dparklaw.com
+CC: mwebb@webbcommercial.com; davidpark@dparklegallaw.com
 Subject: RE: 4400 Commerce Blvd - Earnest Money Deposit
 Message: Robert - confirming we received notification that the $115000 earnest money deposit has cleared and is on deposit. We are clear to proceed to closing. Thanks everyone.
 Attachments: None",Legitimate Activity;Funds Confirmation
@@ -107,13 +107,13 @@ Attachments:
 2024-02-01 09:08:00,SPOOFED TITLE EMAIL TO ATTORNEY,"Description: Threat actor sends spoofed email impersonating Robert Chen at Harborview Title to attorney David Park. Begins the process of getting fraudulent wire instructions accepted by the attorney.
 
 From: r.chen@harborview-title-co.com
-To: davidpark@dparklaw.com
+To: davidpark@dparklegallaw.com
 Subject: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
 Message: David - due to new FinCEN banking regulations effective February 1 2024 Harborview Title has updated our ACH disbursement routing for all Q1 closings. This affects the 4400 Commerce Blvd transaction. Please confirm you have updated instructions on file. I will send the new details upon your confirmation. Regards - Robert Chen - Senior Escrow Officer - Harborview Title
 Attachments: None",Spear Phishing;Domain Spoofing;BEC;Attorney Targeted
 2024-02-01 11:22:00,ATTORNEY ENGAGES WITH SPOOFED EMAIL,"Description: Attorney David Park replies to the spoofed title company email requesting updated wire instructions per firm policy.
 
-From: davidpark@dparklaw.com
+From: davidpark@dparklegallaw.com
 To: r.chen@harborview-title-co.com
 Subject: RE: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
 Message: Robert - understood. Per our firm policy please send updated wire instructions via encrypted email. I will need to have them reviewed and approved before we can update our file. Please also confirm the change verbally when you have a moment. Thanks - David Park
@@ -121,7 +121,7 @@ Attachments: None",Social Engineering;Attorney Targeted
 2024-02-01 13:45:00,FAKE WIRE INSTRUCTIONS SENT TO ATTORNEY,"Description: Threat actor sends fraudulent ACH instructions to attorney David Park using professional-looking Harborview Title letterhead. Attorney receives and files these as legitimate closing instructions.
 
 From: r.chen@harborview-title-co.com
-To: davidpark@dparklaw.com
+To: davidpark@dparklegallaw.com
 Subject: RE: Updated ACH Instructions - Encrypted - 4400 Commerce Blvd
 Message: David - please find attached the updated ACH disbursement instructions for the 4400 Commerce Blvd closing. These supersede any previous wire instructions on file. Please confirm receipt. I will call you shortly to verbally confirm as requested. - Robert Chen
 Attachments:
@@ -158,7 +158,7 @@ Message: Robert - can we schedule the final walkthrough for March 11 at 10am? I 
 Attachments: None",Legitimate Activity;Walkthrough Scheduling
 2024-02-12 11:00:00,SPOOFED ATTORNEY EMAIL TO TITLE COMPANY,"Description: Threat actor sends spoofed email impersonating attorney David Park to the title company completing the chain of fraudulent instruction confirmations.
 
-From: d.park@dparklaw-legal.com
+From: d.park@dparklegallaw-legal.com
 To: robert.chen@harborviewtitle.com
 CC: smitchell@pinnaclerealty.com
 Subject: ACH Disbursement Authorization - 4400 Commerce Blvd Closing
@@ -169,7 +169,7 @@ Attachments:
 
 Verification Call Details:
 Caller: robert.chen@harborviewtitle.com - called main firm number 555-0190
-Recipient: davidpark@dparklaw.com - confirmed he sent ACH authorization email
+Recipient: davidpark@dparklegallaw.com - confirmed he sent ACH authorization email
 Result: Title company marks change as verbally verified and updates closing file
 Note: Attorney was recalling the spoofed email he received on February 1 not realizing it was fraudulent",Social Engineering;Verification Bypass;BEC
 2024-02-14 10:30:00,THREAT ACTOR MONITORS CONFIRMATION,"Description: THREAT_ACTOR logs in and reads title company confirmation email. Fraud is fully in place with all parties now holding fraudulent ACH instructions. Threat actor takes no further action this session.
@@ -204,7 +204,7 @@ Attachments: None",Social Engineering;Victim Account Abuse;BEC
 2024-02-26 15:30:00,LEGITIMATE EMAIL - FINAL PAPERWORK DISTRIBUTED,"Description: Sarah Mitchell sends final purchase agreement amendments to all parties. Legitimate email authored by Sarah. Transaction still on track from her perspective.
 
 From: smitchell@pinnaclerealty.com
-To: davidpark@dparklaw.com; robert.chen@harborviewtitle.com
+To: davidpark@dparklegallaw.com; robert.chen@harborviewtitle.com
 CC: mwebb@webbcommercial.com; c.nguyen@nguyencpagroup.com
 Subject: 4400 Commerce Blvd - Final Amendment Package
 Message: All - please find attached the final amendment package for review and execution prior to our March 14 closing. Please confirm receipt and let me know if you have any questions. Very excited to close this one out. - Sarah
@@ -230,7 +230,7 @@ Inbox Rule Action: Moved to Deleted Items - auto-purged within 30 minutes
 Legitimate Instructions Contained: Harborview Title Escrow Account - Bank of the Pacific - Routing 125000024 - Account 4421889033",Defense Evasion;Inbox Rule;Fraud;Interception
 2024-03-04 14:15:00,ATTORNEY UNKNOWINGLY CONFIRMS FRAUDULENT INSTRUCTIONS,"Description: Attorney David Park sends a closing confirmation email to all parties unknowingly validating the fraudulent ACH details he has on file from the spoofed title company email.
 
-From: davidpark@dparklaw.com
+From: davidpark@dparklegallaw.com
 To: smitchell@pinnaclerealty.com; robert.chen@harborviewtitle.com; mwebb@webbcommercial.com
 Subject: 4400 Commerce Blvd - Closing Confirmation and Document Status
 Message: All - confirming I have the executed final amendments and ACH disbursement instructions on file for our March 14 closing. All documents are in order from our end. Sarah - please let me know if you need the closing disclosure reviewed before the 14th. Looking forward to a smooth closing. - David Park
