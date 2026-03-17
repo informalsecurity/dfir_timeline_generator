@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Timeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --lc: #1a1a2e;
+    --tw: 3px;
+    --title-bg: #3f51b5;
+    --day-bg: #dde1f0; --day-border: #9fa8da; --day-text: #1a237e;
+    --hour-bg: #e8eaf6; --hour-border: #9fa8da; --hour-text: #283593;
+    --ev-bg: #f8f9ff; --ev-border: #c5cae9;
+    --ev-header: #0d1b2a; --ev-desc: #37474f; --ev-ts: #7986cb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #f0f2f8;
+    min-height: 100vh;
+    padding: 40px 20px 100px;
+    overflow-x: auto;
+  }
+
+  .tl-scaffold { display: flex; flex-direction: column; align-items: center; min-width: 900px; }
+
+  .tl-title {
+    position: relative; z-index: 2;
+    background: var(--title-bg); color: #fff;
+    font-size: 1.4rem; font-weight: 700; padding: 10px 44px;
+    border-radius: 8px; letter-spacing: 0.05em;
+    border: 2px solid #5c6bc0; box-shadow: 0 4px 16px rgba(63,81,181,0.25);
+  }
+
+  /* One unbroken central trunk */
+  .tl-trunk-body { position: relative; width: 100%; padding: 30px 0 50px; }
+  .tl-trunk-body::before {
+    content: ''; position: absolute;
+    top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+
+  /* Day rows */
+  .tl-day-row { position: relative; width: 100%; display: flex; padding: 14px 0; z-index: 1; }
+  .tl-day-row.side-right { padding-left: 50%; }
+  .tl-day-row.side-left  { padding-right: 50%; justify-content: flex-end; }
+
+  .tl-day-panel { display: flex; flex-direction: column; }
+  .side-right .tl-day-panel { align-items: flex-start; }
+  .side-left  .tl-day-panel { align-items: flex-end; }
+
+  .day-badge-row { display: flex; align-items: center; }
+  .side-right .day-badge-row { flex-direction: row; }
+  .side-left  .day-badge-row { flex-direction: row-reverse; }
+
+  .day-h-line { width: 50px; height: var(--tw); background: var(--lc); flex-shrink: 0; }
+
+  .day-badge {
+    background: var(--day-bg); border: 2px solid var(--day-border); border-radius: 20px;
+    padding: 5px 18px; font-size: 0.95rem; font-weight: 600;
+    color: var(--day-text); white-space: nowrap;
+  }
+
+  /* ── Hours branch ── */
+  .hours-branch { display: flex; margin-top: 4px; }
+  .side-right .hours-branch { flex-direction: row;         margin-left:  50px; }
+  .side-left  .hours-branch { flex-direction: row-reverse; margin-right: 50px; }
+
+  /*
+    .hour-tree is position:relative.
+    ::before draws a short stub from top:0 down to the centre of the first hour badge (13px).
+    This connects the day-badge's implicit drop-point to the first hour's h-line junction.
+    Each .hour-row:not(:last-child)::after then chains downward between siblings.
+  */
+  .hour-tree {
+    display: flex; flex-direction: column; gap: 14px;
+    position: relative;
+  }
+
+  .hour-tree::before {
+    content: ''; position: absolute;
+    top: 0; height: 13px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .hour-tree::before { left:  0; }
+  .side-left  .hour-tree::before { right: 0; }
+
+  .hour-row { display: flex; align-items: flex-start; position: relative; }
+  .side-right .hour-row { flex-direction: row; }
+  .side-left  .hour-row { flex-direction: row-reverse; }
+
+  /* Chain: each non-last hour-row draws a line from its badge centre down to next badge centre.
+     top: 13px = this badge centre. bottom: -27px = 14px gap + 13px into next badge = next centre. */
+  .side-right .hour-row:not(:last-child)::after,
+  .side-left  .hour-row:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 13px; bottom: -27px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .hour-row:not(:last-child)::after { left:  0; }
+  .side-left  .hour-row:not(:last-child)::after { right: 0; }
+
+  .hour-h-line { width: 40px; height: var(--tw); background: var(--lc); flex-shrink: 0; margin-top: 13px; position: relative; z-index: 1; }
+
+  .hour-content { display: flex; flex-direction: column; position: relative; z-index: 1; }
+  .side-left .hour-content { align-items: flex-end; }
+
+  .hour-badge {
+    background: var(--hour-bg); border: 2px solid var(--hour-border); border-radius: 20px;
+    padding: 4px 16px; font-size: 0.82rem; font-weight: 600; color: var(--hour-text);
+    white-space: nowrap; font-family: 'IBM Plex Mono', monospace;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Events branch ── */
+  .events-branch { display: flex; margin-top: 4px; }
+  .side-right .events-branch { flex-direction: row;         margin-left:  20px; }
+  .side-left  .events-branch { flex-direction: row-reverse; margin-right: 20px; }
+
+  /*
+    Same pattern as hour-tree.
+    ::before stub: top:0, height:14px connects hour-badge drop to first event.
+    ::after chain on non-last event-rows.
+  */
+  .event-tree {
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+  }
+
+  .event-tree::before {
+    content: ''; position: absolute;
+    top: 0; height: 14px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .event-tree::before { left:  0; }
+  .side-left  .event-tree::before { right: 0; }
+
+  .event-row { display: flex; align-items: flex-start; position: relative; z-index: 1; }
+  .side-right .event-row { flex-direction: row; }
+  .side-left  .event-row { flex-direction: row-reverse; }
+
+  /* top: 14px = event card centre. bottom: -22px = 8px gap + 14px into next card. */
+  .side-right .event-row:not(:last-child)::after,
+  .side-left  .event-row:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 14px; bottom: -22px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .event-row:not(:last-child)::after { left:  0; }
+  .side-left  .event-row:not(:last-child)::after { right: 0; }
+
+  .event-h-line { width: 30px; height: var(--tw); background: var(--lc); flex-shrink: 0; margin-top: 14px; position: relative; z-index: 1; }
+
+  .event-card {
+    background: var(--ev-bg); border: 1.5px solid var(--ev-border);
+    border-radius: 6px; padding: 8px 14px; max-width: clamp(200px, 28vw, 600px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; z-index: 1;
+  }
+  .side-left .event-card { text-align: left; }
+
+  .event-ts     { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ev-ts); letter-spacing: 0.02em; margin-bottom: 3px; }
+  .event-header { font-weight: 700; font-size: 0.82rem; color: var(--ev-header); letter-spacing: 0.03em; margin-bottom: 3px; }
+  .event-desc   { font-size: 0.78rem; color: var(--ev-desc); line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+
+  .entity-ref   { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; }
+
+  .threat-actor-badge { display: inline-block; background: #6a1b9a; color: #fff; font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.06em; vertical-align: middle; margin-left: 2px; position: relative; top: -1px; }
+  .spoof-badge  { display: inline-block; background: #c62828; color: #fff; font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.06em; vertical-align: middle; margin-left: 2px; position: relative; top: -1px; }
+
+  .event-tags   { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .side-left .event-tags { justify-content: flex-end; }
+
+  .event-tag    { display: inline-block; background: transparent; color: #3949ab; border: 1.5px solid #9fa8da; font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.04em; white-space: nowrap; }
+
+</style>
+</head>
+<body>
+<div class="tl-scaffold">
+  <div class="tl-title">Timeline</div>
+  <div class="tl-trunk-body">
+    <!-- TIMELINE_DATA_PLACEHOLDER -->
+  </div>
+</div>
+</body>
+</html>

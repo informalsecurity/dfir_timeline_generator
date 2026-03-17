@@ -1,0 +1,341 @@
+DateTime,EventHeader,EventDescription,Tags
+2024-01-08 09:14:00,PHISHING EMAIL RECEIVED,"Description: Sarah Mitchell receives a spear-phishing email appearing to come from DocuSign. Email originates from spoofed domain docu-sign-secure.net.
+
+From: docusign-noreply@docu-sign-secure.net
+To: smitchell@pinnaclerealty.com
+Subject: Action Required: Review and Sign - Purchase Agreement 4400 Commerce Blvd
+Message: Please review and sign the attached purchase agreement at your earliest convenience. This document requires your signature before the January 12 deadline. Click here to review: http://docu-sign-secure.net/review?id=48821
+Attachments:
+1. PurchaseAgreement_4400CommerceBvld_FINAL.pdf",Phishing;Initial Access;Spoofed Email
+2024-01-08 09:31:00,CREDENTIAL HARVESTING,"Description: Sarah Mitchell clicks the phishing link and enters her Microsoft 365 credentials into a convincing fake OWA login portal. Credentials captured by threat actor in real time.
+
+From: smitchell@pinnaclerealty.com (browser session)
+To: http://login-microsoftonline-secure.com/harvest
+Subject: N/A - Credential capture via fake OWA portal
+Message: Victim entered username smitchell@pinnaclerealty.com and password. Portal displayed a fake loading spinner then redirected to the legitimate DocuSign website to avoid suspicion.
+Attachments: None",Phishing;Credential Theft;Initial Access
+2024-01-08 09:34:00,INITIAL ACCOUNT ACCESS,"Description: THREAT_ACTOR authenticates to smitchell@pinnaclerealty.com via OWA using harvested credentials. First confirmed threat actor session in victim mailbox.
+
+Source IP: 185.220.101.47 (Tor exit node - Netherlands)
+User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Auth Method: Username and password - no MFA enrolled
+Session Duration: 31 minutes",Initial Access;Tor;Suspicious Login
+2024-01-08 09:41:00,INBOX RECONNAISSANCE,"Description: THREAT_ACTOR reads emails in victim mailbox for 7 minutes. Identifies active $2.3M commercial property closing scheduled for March 14 2024 and maps all transaction participants.
+
+Key findings noted by threat actor:
+- Closing scheduled March 14 2024 for 4400 Commerce Boulevard
+- Title company: Harborview Title - robert.chen@harborviewtitle.com
+- Buyer: Marcus Webb - mwebb@webbcommercial.com
+- Attorney: David Park - davidpark@dparklaw.com
+- CPA: Carol Nguyen - c.nguyen@nguyencpagroup.com
+- Estimated transaction value: $2.3M",Reconnaissance;Mailbox Access
+2024-01-08 09:48:00,MALICIOUS INBOX RULE CREATED,"Description: THREAT_ACTOR creates first malicious inbox rule to intercept and hide financial and closing-related emails from Sarah Mitchell.
+
+Rule Name: --- (three dashes)
+Condition: Subject or body contains any of: wire; transfer; closing; ACH; payment; title; escrow; instructions; routing; account number
+Action: Move to Deleted Items
+Created From IP: 185.220.101.47
+Visible to User: No - rule hidden in OWA advanced settings",Persistence;Inbox Rule;Defense Evasion
+2024-01-08 10:02:00,SECOND INBOX RULE CREATED,"Description: THREAT_ACTOR creates second malicious inbox rule to suppress all security alerts and fraud notifications before Sarah Mitchell can see them.
+
+Rule Name: (blank)
+Condition: Subject or body contains any of: fraud; security alert; unusual sign-in; suspicious activity; verify your identity; account compromised; unauthorized access
+Action: Delete immediately - bypass Deleted Items
+Created From IP: 185.220.101.47
+Visible to User: No",Persistence;Inbox Rule;Defense Evasion
+2024-01-09 14:22:00,LEGITIMATE EMAIL - CLOSING UPDATE,"Description: Sarah Mitchell sends routine closing coordination email to title company and attorney confirming the March 14 closing date. This is a legitimate email authored by Sarah from her office workstation.
+
+From: smitchell@pinnaclerealty.com
+To: robert.chen@harborviewtitle.com; davidpark@dparklaw.com
+Subject: 4400 Commerce Blvd - Closing Confirmation March 14
+Message: Hi Robert and David - just confirming we are still on track for March 14 closing. Please let me know if you need anything from our side before then. Looking forward to getting this one across the finish line.
+Attachments: None",Legitimate Activity;Closing Coordination
+2024-01-11 08:55:00,THREAT ACTOR PASSIVE MONITORING,"Description: THREAT_ACTOR logs into victim mailbox and silently reads new emails without taking any action. Continues building understanding of transaction relationships and communication patterns.
+
+Source IP: 195.206.105.217 (Commercial VPN - Germany)
+Session Duration: 14 minutes
+Emails Read: 6 new emails in closing thread
+Action Taken: Read only - no replies sent - no rules modified",Reconnaissance;Mailbox Access
+2024-01-15 11:30:00,LEGITIMATE EMAIL - INSPECTION RESULTS,"Description: Sarah Mitchell forwards inspection report to buyer and CPA. Legitimate email authored by Sarah from her office.
+
+From: smitchell@pinnaclerealty.com
+To: mwebb@webbcommercial.com; c.nguyen@nguyencpagroup.com
+Subject: 4400 Commerce Blvd - Inspection Report Summary
+Message: Marcus and Carol - please find attached the inspection report from January 13. Overall the property is in good condition with only minor items noted. Let me know if you have any questions before we proceed.
+Attachments:
+1. InspectionReport_4400CommerceBvld_Jan13.pdf
+2. InspectionPhoto_Summary_Jan13.pdf",Legitimate Activity;Transaction Update
+2024-01-19 09:15:00,THREAT ACTOR READS ATTORNEY THREAD,"Description: THREAT_ACTOR logs in and reads confidential email thread between Sarah Mitchell and attorney David Park regarding wire instruction protocols and title contingencies. Intelligence gathered to craft convincing future spoofed emails.
+
+Source IP: 103.75.190.88 (Commercial VPN - Hong Kong)
+Session Duration: 22 minutes
+Key Intelligence Gathered:
+- Attorney David Park requires encrypted email for wire instructions
+- Firm policy requires verbal confirmation before any wire change
+- Attorney uses personal cell 555-0142 for urgent closing matters",Reconnaissance;Mailbox Access
+2024-01-22 14:05:00,LEGITIMATE EMAIL - EARNEST MONEY CONFIRMED,"Description: Sarah Mitchell sends confirmation that earnest money deposit has been received. Legitimate email authored by Sarah from her mobile device.
+
+From: smitchell@pinnaclerealty.com
+To: robert.chen@harborviewtitle.com
+CC: mwebb@webbcommercial.com; davidpark@dparklaw.com
+Subject: RE: 4400 Commerce Blvd - Earnest Money Deposit
+Message: Robert - confirming we received notification that the $115000 earnest money deposit has cleared and is on deposit. We are clear to proceed to closing. Thanks everyone.
+Attachments: None",Legitimate Activity;Funds Confirmation
+2024-01-25 10:33:00,THREAT ACTOR REQUESTS WIRE TEMPLATE,"Description: THREAT_ACTOR sends email posing as Sarah Mitchell to gather wire instruction template from title company. Used to understand format and make future fraudulent instructions appear legitimate.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: robert.chen@harborviewtitle.com
+Subject: Wire Instruction Template - Commercial Closing
+Message: Hi Robert - as we get closer to closing I want to make sure I have everything organized on my end. Could you send me the standard wire instruction template you use for commercial closings of this size? I want to have it ready for my client. Thanks - Sarah
+Attachments: None",Social Engineering;BEC;Victim Account Abuse
+2024-01-25 14:17:00,TITLE COMPANY PROVIDES WIRE TEMPLATE,"Description: Title company responds to threat actor posing as Sarah Mitchell with standard wire instruction template. THREAT_ACTOR reads and archives this before Sarah Mitchell sees it.
+
+From: robert.chen@harborviewtitle.com
+To: smitchell@pinnaclerealty.com
+Subject: RE: Wire Instruction Template - Commercial Closing
+Message: Hi Sarah - happy to help. Attached is our standard commercial wire template. Note that we will send the finalized instructions with actual account details approximately 48 hours before closing. Please call me directly at 555-0188 if you have any questions about the wiring process.
+Attachments:
+1. HarborviewTitle_WireInstructions_Template.pdf",Intelligence Gathering;Wire Instructions
+2024-01-29 16:44:00,LEGITIMATE EMAIL - APPRAISAL UPDATE,"Description: Sarah Mitchell forwards appraisal report confirming property value. Legitimate email authored by Sarah.
+
+From: smitchell@pinnaclerealty.com
+To: mwebb@webbcommercial.com; c.nguyen@nguyencpagroup.com
+Subject: 4400 Commerce Blvd - Appraisal Report
+Message: Good news - the appraisal came in at $2.285M which supports our agreed purchase price. Attached for your records. Let me know if the lender needs a copy sent directly.
+Attachments:
+1. Appraisal_4400CommerceBvld_Jan28.pdf",Legitimate Activity;Appraisal
+2024-02-01 09:08:00,SPOOFED TITLE EMAIL TO ATTORNEY,"Description: Threat actor sends spoofed email impersonating Robert Chen at Harborview Title to attorney David Park. Begins the process of getting fraudulent wire instructions accepted by the attorney.
+
+From: r.chen@harborview-title-co.com
+To: davidpark@dparklaw.com
+Subject: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
+Message: David - due to new FinCEN banking regulations effective February 1 2024 Harborview Title has updated our ACH disbursement routing for all Q1 closings. This affects the 4400 Commerce Blvd transaction. Please confirm you have updated instructions on file. I will send the new details upon your confirmation. Regards - Robert Chen - Senior Escrow Officer - Harborview Title
+Attachments: None",Spear Phishing;Domain Spoofing;BEC;Attorney Targeted
+2024-02-01 11:22:00,ATTORNEY ENGAGES WITH SPOOFED EMAIL,"Description: Attorney David Park replies to the spoofed title company email requesting updated wire instructions per firm policy.
+
+From: davidpark@dparklaw.com
+To: r.chen@harborview-title-co.com
+Subject: RE: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
+Message: Robert - understood. Per our firm policy please send updated wire instructions via encrypted email. I will need to have them reviewed and approved before we can update our file. Please also confirm the change verbally when you have a moment. Thanks - David Park
+Attachments: None",Social Engineering;Attorney Targeted
+2024-02-01 13:45:00,FAKE WIRE INSTRUCTIONS SENT TO ATTORNEY,"Description: Threat actor sends fraudulent ACH instructions to attorney David Park using professional-looking Harborview Title letterhead. Attorney receives and files these as legitimate closing instructions.
+
+From: r.chen@harborview-title-co.com
+To: davidpark@dparklaw.com
+Subject: RE: Updated ACH Instructions - Encrypted - 4400 Commerce Blvd
+Message: David - please find attached the updated ACH disbursement instructions for the 4400 Commerce Blvd closing. These supersede any previous wire instructions on file. Please confirm receipt. I will call you shortly to verbally confirm as requested. - Robert Chen
+Attachments:
+1. HarborviewTitle_ACH_Instructions_UPDATED_Feb2024.pdf  [Contains: First Coastal Bank Routing 021309379 Account 8847291053]",Fraud;Fake Wire Instructions;BEC;Attorney Targeted
+2024-02-05 08:30:00,SPOOFED CPA EMAIL TO BUYER,"Description: Threat actor sends spoofed email impersonating CPA Carol Nguyen to buyer Marcus Webb attempting to manipulate disbursement structure and gather banking details.
+
+From: c.nguyen@nguyen-cpa-advisors.com
+To: mwebb@webbcommercial.com
+Subject: Tax Optimization - 4400 Commerce Blvd Closing Structure
+Message: Marcus - I have been reviewing the closing structure for the Commerce Blvd transaction. For optimal tax treatment under IRC Section 1031 I recommend structuring the closing funds as two separate ACH transfers rather than a single wire. This will simplify your year-end reporting considerably. Please confirm your banking details are current in our file so I can finalize the recommendation for Sarah. - Carol Nguyen CPA
+Attachments:
+1. TaxOptimization_CommerceBvld_Analysis.pdf",Spear Phishing;Domain Spoofing;BEC;Buyer Targeted
+2024-02-05 10:15:00,BUYER QUESTIONS CPA ADVICE,"Description: Buyer Marcus Webb questions the unusual CPA advice and asks for confirmation from Sarah Mitchell before proceeding. Threat actor notes buyer requires additional social engineering.
+
+From: mwebb@webbcommercial.com
+To: c.nguyen@nguyen-cpa-advisors.com
+Subject: RE: Tax Optimization - 4400 Commerce Blvd Closing Structure
+Message: Carol - this is the first I am hearing about a split ACH structure. Has Sarah approved this? I want to make sure everyone is on the same page before I do anything with my bank. My current wire instructions on file are for a single transfer. Please advise. - Marcus
+Attachments: None",Social Engineering;Buyer Targeted
+2024-02-05 14:30:00,THREAT ACTOR REASSURES BUYER FROM VICTIM MAILBOX,"Description: THREAT_ACTOR sends email from Sarah Mitchell's compromised account to reassure the cautious buyer and discourage him from making phone calls that could expose the fraud.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: mwebb@webbcommercial.com
+Subject: RE: Closing Disbursement Structure - Carol Nguyen Recommendation
+Message: Hi Marcus - yes I have reviewed Carol's recommendation and it is standard practice for commercial transactions of this size. The split ACH approach simplifies the tax reporting considerably. Please do not contact the title company directly about this as it can cause processing delays on their end. Carol will send you the final details. Everything is on track for March 14. - Sarah
+Attachments: None",Social Engineering;BEC;Victim Account Abuse
+2024-02-07 09:45:00,LEGITIMATE EMAIL - WALKTHROUGH SCHEDULING,"Description: Sarah Mitchell sends routine scheduling email for final walkthrough. Legitimate email authored by Sarah with no knowledge of ongoing fraud.
+
+From: smitchell@pinnaclerealty.com
+To: robert.chen@harborviewtitle.com
+CC: mwebb@webbcommercial.com
+Subject: 4400 Commerce Blvd - Final Walkthrough Scheduling
+Message: Robert - can we schedule the final walkthrough for March 11 at 10am? I want to make sure we have a few days buffer before closing in case there are any last minute items. Please confirm if that works for all parties. Thanks - Sarah
+Attachments: None",Legitimate Activity;Walkthrough Scheduling
+2024-02-12 11:00:00,SPOOFED ATTORNEY EMAIL TO TITLE COMPANY,"Description: Threat actor sends spoofed email impersonating attorney David Park to the title company completing the chain of fraudulent instruction confirmations.
+
+From: d.park@dparklaw-legal.com
+To: robert.chen@harborviewtitle.com
+CC: smitchell@pinnaclerealty.com
+Subject: ACH Disbursement Authorization - 4400 Commerce Blvd Closing
+Message: Robert - I am writing to confirm that per my client's request and in coordination with the CPA the disbursement for the 4400 Commerce Blvd closing will be processed via ACH rather than wire transfer. All parties have reviewed and approved the updated instructions. Please confirm your file has been updated accordingly. - David Park Esq. - Park Legal Group
+Attachments:
+1. ACH_Authorization_Letter_DPark_Feb2024.pdf",Spear Phishing;Domain Spoofing;BEC;Title Company Targeted
+2024-02-12 14:22:00,TITLE COMPANY CALLS ATTORNEY TO VERIFY,"Description: Title company calls attorney David Park's office to verbally verify the ACH change. The attorney recalls receiving the earlier spoofed email and unknowingly confirms the fraudulent change as legitimate.
+
+Verification Call Details:
+Caller: robert.chen@harborviewtitle.com - called main firm number 555-0190
+Recipient: davidpark@dparklaw.com - confirmed he sent ACH authorization email
+Result: Title company marks change as verbally verified and updates closing file
+Note: Attorney was recalling the spoofed email he received on February 1 not realizing it was fraudulent",Social Engineering;Verification Bypass;BEC
+2024-02-14 10:30:00,THREAT ACTOR MONITORS CONFIRMATION,"Description: THREAT_ACTOR logs in and reads title company confirmation email. Fraud is fully in place with all parties now holding fraudulent ACH instructions. Threat actor takes no further action this session.
+
+Source IP: 45.142.212.100 (Commercial VPN - Romania)
+Session Duration: 8 minutes
+Email Read: Confirmation from robert.chen@harborviewtitle.com that ACH change noted in closing file for March 14
+Threat Actor Status: Fraud instructions confirmed with all parties - monitoring only",Mailbox Access;Fraud Monitoring
+2024-02-19 09:20:00,SPOOFED IRS EMAIL TO CPA,"Description: Threat actor sends spoofed IRS compliance email to CPA Carol Nguyen in an attempt to independently validate routing details and create additional paper trail confusion.
+
+From: compliance@irs-filing-portal.net
+To: c.nguyen@nguyencpagroup.com
+Subject: Form 1099-S Filing Update Required - Commercial Property Transaction
+Message: This is an automated notice from IRS Compliance Division. Our records indicate a commercial property transaction associated with your client Pinnacle Realty requires an updated Form 1099-S disbursement routing confirmation. Please confirm the ACH routing details associated with this transaction within 5 business days to avoid a filing penalty. Reference: TIN-2024-0814-CR
+Attachments:
+1. IRS_Notice_1099S_FilingUpdate.pdf",Spear Phishing;IRS Impersonation;BEC;CPA Targeted
+2024-02-19 14:05:00,CPA FORWARDS IRS EMAIL TO VICTIM MAILBOX,"Description: CPA Carol Nguyen forwards the spoofed IRS notice to Sarah Mitchell asking about the filing status. THREAT_ACTOR intercepts and deletes this email before Sarah sees it.
+
+From: c.nguyen@nguyencpagroup.com
+To: smitchell@pinnaclerealty.com
+Subject: FWD: IRS Filing Notice - 1099-S - Have You Handled This?
+Message: Sarah - I received this IRS notice regarding the Commerce Blvd transaction. Has your legal team already addressed the 1099-S filing? I want to make sure we are not duplicating efforts. Let me know. - Carol
+Attachments:
+1. IRS_Notice_1099S_FilingUpdate.pdf  [forwarded attachment - spoofed IRS document]",Defense Evasion;Inbox Rule;Fraud
+2024-02-20 10:15:00,THREAT ACTOR REPLIES TO CPA AS SARAH,"Description: THREAT_ACTOR responds to CPA from victim mailbox to close the loop and prevent CPA from following up through other channels.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: c.nguyen@nguyencpagroup.com
+Subject: RE: IRS Filing Notice - 1099-S
+Message: Carol - yes this has already been handled by David Park's office as part of the closing documentation. Please do not respond directly to the IRS notice as our legal team has advised that unsolicited responses can trigger an expanded audit review. I will have David send you confirmation once the closing is complete. Thanks - Sarah
+Attachments: None",Social Engineering;Victim Account Abuse;BEC
+2024-02-26 15:30:00,LEGITIMATE EMAIL - FINAL PAPERWORK DISTRIBUTED,"Description: Sarah Mitchell sends final purchase agreement amendments to all parties. Legitimate email authored by Sarah. Transaction still on track from her perspective.
+
+From: smitchell@pinnaclerealty.com
+To: davidpark@dparklaw.com; robert.chen@harborviewtitle.com
+CC: mwebb@webbcommercial.com; c.nguyen@nguyencpagroup.com
+Subject: 4400 Commerce Blvd - Final Amendment Package
+Message: All - please find attached the final amendment package for review and execution prior to our March 14 closing. Please confirm receipt and let me know if you have any questions. Very excited to close this one out. - Sarah
+Attachments:
+1. FinalAmendment_4400CommerceBvld_Feb26.pdf
+2. ClosingChecklist_March14.pdf",Legitimate Activity;Closing Preparation
+2024-03-01 09:00:00,SPOOFED TITLE COMPANY SENDS FRAUDULENT FINAL INSTRUCTIONS,"Description: Threat actor sends final fraudulent ACH closing instructions from spoofed title company address to buyer and victim mailbox. This is the primary fraud instrument.
+
+From: r.chen@harborview-title-co.com
+To: mwebb@webbcommercial.com
+CC: smitchell@pinnaclerealty.com
+Subject: 4400 Commerce Blvd - FINAL Closing Disbursement Instructions
+Message: Marcus and Sarah - please find attached the final ACH disbursement instructions for the March 14 closing. Please initiate the ACH transfer no later than March 12 to ensure cleared funds by closing date. Do not use any previously circulated wire instructions as these are now superseded. Contact me only via email for any questions to ensure proper documentation. - Robert Chen - Harborview Title
+Attachments:
+1. HarborviewTitle_FINAL_ACH_Instructions_March2024.pdf  [Contains: First Coastal Bank Routing 021309379 Account 8847291053]",Fraud;Fake Wire Instructions;BEC;Closing Fraud
+2024-03-01 11:30:00,LEGITIMATE WIRE INSTRUCTIONS INTERCEPTED AND DELETED,"Description: The real wire instructions from Harborview Title arrive in Sarah's inbox and are immediately intercepted and deleted by the malicious inbox rule before Sarah can see them.
+
+From: robert.chen@harborviewtitle.com
+To: smitchell@pinnaclerealty.com
+Subject: 4400 Commerce Blvd - Official Wire Transfer Instructions
+Message: [DELETED BY INBOX RULE BEFORE SARAH MITCHELL SAW THIS EMAIL]
+Inbox Rule Action: Moved to Deleted Items - auto-purged within 30 minutes
+Legitimate Instructions Contained: Harborview Title Escrow Account - Bank of the Pacific - Routing 125000024 - Account 4421889033",Defense Evasion;Inbox Rule;Fraud;Interception
+2024-03-04 14:15:00,ATTORNEY UNKNOWINGLY CONFIRMS FRAUDULENT INSTRUCTIONS,"Description: Attorney David Park sends a closing confirmation email to all parties unknowingly validating the fraudulent ACH details he has on file from the spoofed title company email.
+
+From: davidpark@dparklaw.com
+To: smitchell@pinnaclerealty.com; robert.chen@harborviewtitle.com; mwebb@webbcommercial.com
+Subject: 4400 Commerce Blvd - Closing Confirmation and Document Status
+Message: All - confirming I have the executed final amendments and ACH disbursement instructions on file for our March 14 closing. All documents are in order from our end. Sarah - please let me know if you need the closing disclosure reviewed before the 14th. Looking forward to a smooth closing. - David Park
+Attachments:
+1. ClosingDisclosure_Review_DPark_Mar4.pdf",Fraud;Attorney Targeted;Closing Preparation
+2024-03-08 10:00:00,THREAT ACTOR SENDS PRE-CLOSING PAYMENT REMINDER,"Description: THREAT_ACTOR sends urgency email from victim mailbox pressuring buyer to initiate the fraudulent ACH transfer and reiterating the fraudulent account details.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: mwebb@webbcommercial.com
+Subject: REMINDER: ACH Transfer Must Be Initiated by March 12 - 4400 Commerce Blvd
+Message: Marcus - just a reminder that per the title company instructions the ACH transfer needs to be initiated no later than end of day March 12 to ensure cleared funds for our March 14 closing. Please use the instructions sent by Robert Chen on March 1: First Coastal Bank Routing 021309379 Account 8847291053 Amount $2185000. Please send me confirmation once initiated. Thanks - Sarah
+Attachments: None",Fraud;Victim Account Abuse;BEC;Urgency
+2024-03-08 14:30:00,LEGITIMATE EMAIL - SARAH CONFIRMS CLOSING PREP,"Description: Sarah Mitchell sends routine pre-closing status email to her broker. Legitimate email authored by Sarah with no knowledge of the fraud in progress.
+
+From: smitchell@pinnaclerealty.com
+To: broker@pinnaclerealty.com
+Subject: 4400 Commerce Blvd - Closing Prep Status
+Message: All documents are executed and on file. Final walkthrough scheduled for March 11. Closing confirmed for March 14 at 10am at Harborview Title offices. Commission disbursement should hit our account by EOD March 14. Our biggest close this quarter!
+Attachments:
+1. ClosingChecklist_4400Commerce_FINAL.pdf",Legitimate Activity;Closing Preparation
+2024-03-11 09:30:00,LEGITIMATE EMAIL - WALKTHROUGH COMPLETE,"Description: Sarah Mitchell confirms the final walkthrough was completed successfully. Legitimate email authored by Sarah.
+
+From: smitchell@pinnaclerealty.com
+To: robert.chen@harborviewtitle.com; mwebb@webbcommercial.com
+Subject: 4400 Commerce Blvd - Final Walkthrough Complete
+Message: Robert and Marcus - walkthrough completed this morning and property is in agreed condition. All systems operational and no new issues identified. We are all set for Thursday. See everyone at 10am. - Sarah
+Attachments: None",Legitimate Activity;Walkthrough Complete
+2024-03-12 10:22:00,BUYER INITIATES FRAUDULENT ACH TRANSFER,"Description: Marcus Webb initiates the fraudulent ACH transfer of $2185000 to the threat actor controlled account based on the fake closing instructions.
+
+Transfer Details:
+Originating Bank: Pacific Commerce Bank
+Originating Account: Marcus Webb - Webb Commercial Properties LLC
+Routing Number: 021309379 (First Coastal Bank - threat actor controlled)
+Account Number: 8847291053 (threat actor controlled)
+Amount: $2185000.00
+Reference: 4400 Commerce Blvd Closing 031424
+Transfer Initiated: 10:22 AM Pacific
+Expected Settlement: March 13 2024",ACH Fraud;Fund Transfer;BEC Payout
+2024-03-12 14:45:00,THREAT ACTOR STALLS BUYER FROM VICTIM MAILBOX,"Description: THREAT_ACTOR sends confirmation email from Sarah Mitchell's account to keep Marcus Webb from contacting the title company while funds are in transit.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: mwebb@webbcommercial.com
+Subject: RE: ACH Transfer Confirmation - 4400 Commerce Blvd
+Message: Marcus - thank you for the confirmation. I have notified Robert at Harborview Title that the transfer has been initiated. Please do not contact the title company directly until the funds are confirmed cleared as it can create a processing hold. Everything is on track for Thursday. See you at closing. - Sarah
+Attachments: None",Fraud;Victim Account Abuse;BEC;Delay Tactic
+2024-03-13 09:15:00,FRAUD DISCOVERED,"Description: Title company calls Sarah Mitchell directly for routine pre-closing wire confirmation and discovers the fraud when Sarah states she never sent updated ACH instructions.
+
+Discovery Call Details:
+Caller: robert.chen@harborviewtitle.com - called smitchell@pinnaclerealty.com direct cell
+Victim Statement: Sarah Mitchell stated she never changed wire instructions and never communicated with the title company about ACH routing changes
+Immediate Action: Robert Chen contacts Harborview Title compliance team and buyer's bank within 15 minutes of discovery
+ACH Status at Discovery: $2185000 transfer settled to First Coastal Bank at 9:02 AM - approximately 7 minutes before discovery call",Fraud Discovered;Victim Notification;Incident Response
+2024-03-13 10:00:00,MALICIOUS INBOX RULES DISCOVERED,"Description: Sarah Mitchell logs into her account and discovers the two malicious inbox rules that have been silently intercepting and deleting emails for over two months.
+
+Rules Found:
+1. Rule named ---: Moving all financial keyword emails to Deleted Items since January 8
+2. Rule named (blank): Auto-deleting all security notification emails since January 8
+Emails Confirmed Missing: Minimum 34 emails related to security alerts and wire instructions
+Account Actions Taken: Password reset - MFA enforced - all active sessions terminated - IT security engaged",Incident Response;Discovery;Inbox Rules Found
+2024-03-13 11:30:00,ACH RECALL INITIATED - FUNDS ALREADY MOVED,"Description: Buyer's bank and title company initiate emergency ACH recall. Funds have already been disbursed through a layered mule account chain.
+
+Recall Reference: PCB-RECALL-20240313-8847291053
+First Coastal Bank Response: Account 8847291053 balance $0.00 - funds transferred out in three transactions within 4 hours of receipt on March 12
+Fund Movement Reconstructed:
+1. $2185000 received First Coastal Bank 9:02 AM March 12
+2. $1450000 transferred to Chime account ending 7741 at 10:15 AM March 12
+3. $735000 transferred to Cash App account $FastMoveXX at 10:31 AM March 12
+4. Both accounts converted to USDC via Coinbase at 1:44 PM March 12
+Funds Status: Unrecoverable",ACH Recall;Funds Lost;Money Mule;Cryptocurrency
+2024-03-14 09:00:00,CLOSING DAY - TRANSACTION FAILS,"Description: The scheduled closing for 4400 Commerce Boulevard does not occur. All parties present at Harborview Title offices are informed of the fraud. Law enforcement agencies contacted.
+
+Agencies Contacted:
+- FBI Internet Crime Complaint Center (IC3) - Complaint #I-031424-9981
+- United States Secret Service Financial Crimes Division
+- Local PD Financial Crimes Unit
+- FinCEN Suspicious Activity Report filed by both banks
+Total Confirmed Loss: $2185000
+Transaction Status: Indefinitely delayed pending fraud investigation",Transaction Failed;Law Enforcement;FBI;Closing Day
+2024-03-18 02:14:00,THREAT ACTOR FINAL ACCESS - MALWARE STAGING,"Description: THREAT_ACTOR makes final authenticated login to victim mailbox in the early morning hours. Exfiltrates full contact list and stages malicious SVG payload for mass distribution.
+
+Source IP: 91.108.56.77 (Telegram infrastructure - known C2)
+Login Time: 02:14 AM Pacific
+Session Duration: 17 minutes
+Actions Taken:
+- Exported full address book: 847 contacts
+- Composed mass email draft with SVG attachment
+- File staged: Commission_Statement_Q1_2024.svg (23KB - contains embedded JavaScript credential harvester)
+- Scheduled send: 02:31 AM",Malware Staging;Data Exfiltration;After Hours Access;C2
+2024-03-18 02:31:00,MASS MALICIOUS SVG CAMPAIGN LAUNCHED,"Description: THREAT_ACTOR uses Sarah Mitchell's compromised account to blast malicious SVG attachment to all 847 contacts in her address book as a final monetization action.
+
+From: smitchell@pinnaclerealty.com (THREAT_ACTOR)
+To: [847 contacts from victim address book]
+Subject: RE: Q1 Commission Statement - Action Required
+Message: Please see attached your Q1 commission statement. If you have any questions please review the document and contact our accounting team. Thank you for your continued business.
+Attachments:
+1. Commission_Statement_Q1_2024.svg  [MALICIOUS - Contains embedded JavaScript - executes credential harvester when opened in browser - targets Microsoft 365 and banking credentials]
+
+SVG Payload Behavior: On open in browser the SVG renders a convincing PDF-style commission statement while silently POSTing victim credentials to hxxps://collect-stats-cdn.net/harvest",Malware Distribution;Mass Email;SVG Attachment;Credential Harvesting
+2024-03-18 03:05:00,ACCOUNT LOCKED - INVESTIGATION INITIATED,"Description: IT security detects mass outbound email anomaly via SIEM alert and takes emergency action to contain the threat.
+
+Detection Source: Microsoft Defender for O365 - Bulk outbound email anomaly alert
+Alert Threshold Exceeded: 847 outbound emails in 34 minutes from single account
+Actions Taken:
+1. smitchell@pinnaclerealty.com disabled and all sessions revoked at 03:05 AM
+2. Email security vendor contacted to quarantine SVG emails in recipient inboxes
+3. 312 of 847 emails quarantined before delivery - 535 delivered
+4. Forensic image of mailbox taken for FBI evidence preservation
+5. All party notifications initiated at business open 08:00 AM",Incident Response;Account Lockout;Containment;Forensics

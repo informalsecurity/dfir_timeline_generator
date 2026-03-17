@@ -1,0 +1,1543 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Timeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --lc: #1a1a2e;
+    --tw: 3px;
+    --title-bg: #3f51b5;
+    --day-bg: #dde1f0; --day-border: #9fa8da; --day-text: #1a237e;
+    --hour-bg: #e8eaf6; --hour-border: #9fa8da; --hour-text: #283593;
+    --ev-bg: #f8f9ff; --ev-border: #c5cae9;
+    --ev-header: #0d1b2a; --ev-desc: #37474f; --ev-ts: #7986cb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #f0f2f8;
+    min-height: 100vh;
+    padding: 40px 20px 100px;
+    overflow-x: auto;
+  }
+
+  .tl-scaffold { display: flex; flex-direction: column; align-items: center; min-width: 900px; }
+
+  .tl-title {
+    position: relative; z-index: 2;
+    background: var(--title-bg); color: #fff;
+    font-size: 1.4rem; font-weight: 700; padding: 10px 44px;
+    border-radius: 8px; letter-spacing: 0.05em;
+    border: 2px solid #5c6bc0; box-shadow: 0 4px 16px rgba(63,81,181,0.25);
+  }
+
+  /* One unbroken central trunk */
+  .tl-trunk-body { position: relative; width: 100%; padding: 30px 0 50px; }
+  .tl-trunk-body::before {
+    content: ''; position: absolute;
+    top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+
+  /* Day rows */
+  .tl-day-row { position: relative; width: 100%; display: flex; padding: 14px 0; z-index: 1; }
+  .tl-day-row.side-right { padding-left: 50%; }
+  .tl-day-row.side-left  { padding-right: 50%; justify-content: flex-end; }
+
+  .tl-day-panel { display: flex; flex-direction: column; }
+  .side-right .tl-day-panel { align-items: flex-start; }
+  .side-left  .tl-day-panel { align-items: flex-end; }
+
+  .day-badge-row { display: flex; align-items: center; }
+  .side-right .day-badge-row { flex-direction: row; }
+  .side-left  .day-badge-row { flex-direction: row-reverse; }
+
+  .day-h-line { width: 50px; height: var(--tw); background: var(--lc); flex-shrink: 0; }
+
+  .day-badge {
+    background: var(--day-bg); border: 2px solid var(--day-border); border-radius: 20px;
+    padding: 5px 18px; font-size: 0.95rem; font-weight: 600;
+    color: var(--day-text); white-space: nowrap;
+  }
+
+  /* ── Hours branch ── */
+  .hours-branch { display: flex; margin-top: 4px; }
+  .side-right .hours-branch { flex-direction: row;         margin-left:  50px; }
+  .side-left  .hours-branch { flex-direction: row-reverse; margin-right: 50px; }
+
+  /*
+    .hour-tree is position:relative.
+    ::before draws a short stub from top:0 down to the centre of the first hour badge (13px).
+    This connects the day-badge's implicit drop-point to the first hour's h-line junction.
+    Each .hour-row:not(:last-child)::after then chains downward between siblings.
+  */
+  .hour-tree {
+    display: flex; flex-direction: column; gap: 14px;
+    position: relative;
+  }
+
+  .hour-tree::before {
+    content: ''; position: absolute;
+    top: 0; height: 13px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .hour-tree::before { left:  0; }
+  .side-left  .hour-tree::before { right: 0; }
+
+  .hour-row { display: flex; align-items: flex-start; position: relative; }
+  .side-right .hour-row { flex-direction: row; }
+  .side-left  .hour-row { flex-direction: row-reverse; }
+
+  /* Chain: each non-last hour-row draws a line from its badge centre down to next badge centre.
+     top: 13px = this badge centre. bottom: -27px = 14px gap + 13px into next badge = next centre. */
+  .side-right .hour-row:not(:last-child)::after,
+  .side-left  .hour-row:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 13px; bottom: -27px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .hour-row:not(:last-child)::after { left:  0; }
+  .side-left  .hour-row:not(:last-child)::after { right: 0; }
+
+  .hour-h-line { width: 40px; height: var(--tw); background: var(--lc); flex-shrink: 0; margin-top: 13px; position: relative; z-index: 1; }
+
+  .hour-content { display: flex; flex-direction: column; position: relative; z-index: 1; }
+  .side-left .hour-content { align-items: flex-end; }
+
+  .hour-badge {
+    background: var(--hour-bg); border: 2px solid var(--hour-border); border-radius: 20px;
+    padding: 4px 16px; font-size: 0.82rem; font-weight: 600; color: var(--hour-text);
+    white-space: nowrap; font-family: 'IBM Plex Mono', monospace;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Events branch ── */
+  .events-branch { display: flex; margin-top: 4px; }
+  .side-right .events-branch { flex-direction: row;         margin-left:  20px; }
+  .side-left  .events-branch { flex-direction: row-reverse; margin-right: 20px; }
+
+  /*
+    Same pattern as hour-tree.
+    ::before stub: top:0, height:14px connects hour-badge drop to first event.
+    ::after chain on non-last event-rows.
+  */
+  .event-tree {
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+  }
+
+  .event-tree::before {
+    content: ''; position: absolute;
+    top: 0; height: 14px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .event-tree::before { left:  0; }
+  .side-left  .event-tree::before { right: 0; }
+
+  .event-row { display: flex; align-items: flex-start; position: relative; z-index: 1; }
+  .side-right .event-row { flex-direction: row; }
+  .side-left  .event-row { flex-direction: row-reverse; }
+
+  /* top: 14px = event card centre. bottom: -22px = 8px gap + 14px into next card. */
+  .side-right .event-row:not(:last-child)::after,
+  .side-left  .event-row:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 14px; bottom: -22px;
+    width: var(--tw); background: var(--lc); z-index: 0;
+  }
+  .side-right .event-row:not(:last-child)::after { left:  0; }
+  .side-left  .event-row:not(:last-child)::after { right: 0; }
+
+  .event-h-line { width: 30px; height: var(--tw); background: var(--lc); flex-shrink: 0; margin-top: 14px; position: relative; z-index: 1; }
+
+  .event-card {
+    background: var(--ev-bg); border: 1.5px solid var(--ev-border);
+    border-radius: 6px; padding: 8px 14px; max-width: clamp(200px, 28vw, 600px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; z-index: 1;
+  }
+  .side-left .event-card { text-align: left; }
+
+  .event-ts     { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ev-ts); letter-spacing: 0.02em; margin-bottom: 3px; }
+  .event-header { font-weight: 700; font-size: 0.82rem; color: var(--ev-header); letter-spacing: 0.03em; margin-bottom: 3px; }
+  .event-desc   { font-size: 0.78rem; color: var(--ev-desc); line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+
+  .entity-ref   { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; }
+
+  .threat-actor-badge { display: inline-block; background: #6a1b9a; color: #fff; font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.06em; vertical-align: middle; margin-left: 2px; position: relative; top: -1px; }
+  .spoof-badge  { display: inline-block; background: #c62828; color: #fff; font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.06em; vertical-align: middle; margin-left: 2px; position: relative; top: -1px; }
+
+  .event-tags   { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .side-left .event-tags { justify-content: flex-end; }
+
+  .event-tag    { display: inline-block; background: transparent; color: #3949ab; border: 1.5px solid #9fa8da; font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.04em; white-space: nowrap; }
+
+</style>
+</head>
+<body>
+<div class="tl-scaffold">
+  <div class="tl-title">Timeline</div>
+  <div class="tl-trunk-body">
+      <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 0</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  09:14:00</div>
+                      <div class="event-header">PHISHING EMAIL RECEIVED</div>
+                      <div class="event-desc">Description: Sarah Mitchell receives a spear-phishing email appearing to come from DocuSign. Email originates from spoofed domain docu-sign-secure.net.
+
+From: docusign-noreply@docu-sign-secure.net
+To: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: Action Required: Review and Sign - Purchase Agreement 4400 Commerce Blvd
+Message: Please review and sign the attached purchase agreement at your earliest convenience. This document requires your signature before the January 12 deadline. Click here to review: http://docu-sign-secure.net/review?id=48821
+Attachments:
+1. PurchaseAgreement_4400CommerceBvld_FINAL.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Phishing</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">Initial Access</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Spoofed Email</span></div>
+                    </div>
+                  </div>
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  09:31:00</div>
+                      <div class="event-header">CREDENTIAL HARVESTING</div>
+                      <div class="event-desc">Description: Sarah Mitchell clicks the phishing link and enters her Microsoft 365 credentials into a convincing fake OWA login portal. Credentials captured by threat actor in real time.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (browser session)
+To: http://login-microsoftonline-secure.com/harvest
+Subject: N/A - Credential capture via fake OWA portal
+Message: Victim entered username <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> and password. Portal displayed a fake loading spinner then redirected to the legitimate DocuSign website to avoid suspicion.
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Phishing</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Credential Theft</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">Initial Access</span></div>
+                    </div>
+                  </div>
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  09:34:00</div>
+                      <div class="event-header">INITIAL ACCOUNT ACCESS</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> authenticates to <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> via OWA using harvested credentials. First confirmed threat actor session in victim mailbox.
+
+Source IP: 185.220.101.47 (Tor exit node - Netherlands)
+User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Auth Method: Username and password - no MFA enrolled
+Session Duration: 31 minutes</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">Initial Access</span><span class="event-tag" style="border-color:#c62828;color:#c62828;">Tor</span><span class="event-tag" style="border-color:#2e7d32;color:#2e7d32;">Suspicious Login</span></div>
+                    </div>
+                  </div>
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  09:41:00</div>
+                      <div class="event-header">INBOX RECONNAISSANCE</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> reads emails in victim mailbox for 7 minutes. Identifies active $2.3M commercial property closing scheduled for March 14 2024 and maps all transaction participants.
+
+Key findings noted by threat actor:
+- Closing scheduled March 14 2024 for 4400 Commerce Boulevard
+- Title company: Harborview Title - <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+- Buyer: Marcus Webb - <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+- Attorney: David Park - <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+- CPA: Carol Nguyen - <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+- Estimated transaction value: $2.3M</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Reconnaissance</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Mailbox Access</span></div>
+                    </div>
+                  </div>
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  09:48:00</div>
+                      <div class="event-header">MALICIOUS INBOX RULE CREATED</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> creates first malicious inbox rule to intercept and hide financial and closing-related emails from Sarah Mitchell.
+
+Rule Name: --- (three dashes)
+Condition: Subject or body contains any of: wire; transfer; closing; ACH; payment; title; escrow; instructions; routing; account number
+Action: Move to Deleted Items
+Created From IP: 185.220.101.47
+Visible to User: No - rule hidden in OWA advanced settings</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Persistence</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Inbox Rule</span><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Defense Evasion</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/8/2024  10:02:00</div>
+                      <div class="event-header">SECOND INBOX RULE CREATED</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> creates second malicious inbox rule to suppress all security alerts and fraud notifications before Sarah Mitchell can see them.
+
+Rule Name: (blank)
+Condition: Subject or body contains any of: fraud; security alert; unusual sign-in; suspicious activity; verify your identity; account compromised; unauthorized access
+Action: Delete immediately - bypass Deleted Items
+Created From IP: 185.220.101.47
+Visible to User: No</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Persistence</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Inbox Rule</span><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Defense Evasion</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 1</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/9/2024  14:22:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - CLOSING UPDATE</div>
+                      <div class="event-desc">Description: Sarah Mitchell sends routine closing coordination email to title company and attorney confirming the March 14 closing date. This is a legitimate email authored by Sarah from her office workstation.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>; <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+Subject: 4400 Commerce Blvd - Closing Confirmation March 14
+Message: Hi Robert and David - just confirming we are still on track for March 14 closing. Please let me know if you need anything from our side before then. Looking forward to getting this one across the finish line.
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#4e342e;color:#4e342e;">Closing Coordination</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 3</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">08:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/11/2024  08:55:00</div>
+                      <div class="event-header">THREAT ACTOR PASSIVE MONITORING</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> logs into victim mailbox and silently reads new emails without taking any action. Continues building understanding of transaction relationships and communication patterns.
+
+Source IP: 195.206.105.217 (Commercial VPN - Germany)
+Session Duration: 14 minutes
+Emails Read: 6 new emails in closing thread
+Action Taken: Read only - no replies sent - no rules modified</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Reconnaissance</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Mailbox Access</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 7</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">11:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/15/2024  11:30:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - INSPECTION RESULTS</div>
+                      <div class="event-desc">Description: Sarah Mitchell forwards inspection report to buyer and CPA. Legitimate email authored by Sarah from her office.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>; <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+Subject: 4400 Commerce Blvd - Inspection Report Summary
+Message: Marcus and Carol - please find attached the inspection report from January 13. Overall the property is in good condition with only minor items noted. Let me know if you have any questions before we proceed.
+Attachments:
+1. InspectionReport_4400CommerceBvld_Jan13.pdf
+2. InspectionPhoto_Summary_Jan13.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#00838f;color:#00838f;">Transaction Update</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 11</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/19/2024  09:15:00</div>
+                      <div class="event-header">THREAT ACTOR READS ATTORNEY THREAD</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> logs in and reads confidential email thread between Sarah Mitchell and attorney David Park regarding wire instruction protocols and title contingencies. Intelligence gathered to craft convincing future spoofed emails.
+
+Source IP: 103.75.190.88 (Commercial VPN - Hong Kong)
+Session Duration: 22 minutes
+Key Intelligence Gathered:
+- Attorney David Park requires encrypted email for wire instructions
+- Firm policy requires verbal confirmation before any wire change
+- Attorney uses personal cell 555-0142 for urgent closing matters</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Reconnaissance</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Mailbox Access</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 14</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/22/2024  14:05:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - EARNEST MONEY CONFIRMED</div>
+                      <div class="event-desc">Description: Sarah Mitchell sends confirmation that earnest money deposit has been received. Legitimate email authored by Sarah from her mobile device.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+CC: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>; <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+Subject: RE: 4400 Commerce Blvd - Earnest Money Deposit
+Message: Robert - confirming we received notification that the $115000 earnest money deposit has cleared and is on deposit. We are clear to proceed to closing. Thanks everyone.
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#283593;color:#283593;">Funds Confirmation</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 17</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/25/2024  10:33:00</div>
+                      <div class="event-header">THREAT ACTOR REQUESTS WIRE TEMPLATE</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> sends email posing as Sarah Mitchell to gather wire instruction template from title company. Used to understand format and make future fraudulent instructions appear legitimate.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+Subject: Wire Instruction Template - Commercial Closing
+Message: Hi Robert - as we get closer to closing I want to make sure I have everything organized on my end. Could you send me the standard wire instruction template you use for commercial closings of this size? I want to have it ready for my client. Thanks - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Victim Account Abuse</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/25/2024  14:17:00</div>
+                      <div class="event-header">TITLE COMPANY PROVIDES WIRE TEMPLATE</div>
+                      <div class="event-desc">Description: Title company responds to threat actor posing as Sarah Mitchell with standard wire instruction template. <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> reads and archives this before Sarah Mitchell sees it.
+
+From: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+To: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: RE: Wire Instruction Template - Commercial Closing
+Message: Hi Sarah - happy to help. Attached is our standard commercial wire template. Note that we will send the finalized instructions with actual account details approximately 48 hours before closing. Please call me directly at 555-0188 if you have any questions about the wiring process.
+Attachments:
+1. HarborviewTitle_WireInstructions_Template.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#e65100;color:#e65100;">Intelligence Gathering</span><span class="event-tag" style="border-color:#c62828;color:#c62828;">Wire Instructions</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 21</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">16:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">1/29/2024  16:44:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - APPRAISAL UPDATE</div>
+                      <div class="event-desc">Description: Sarah Mitchell forwards appraisal report confirming property value. Legitimate email authored by Sarah.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>; <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+Subject: 4400 Commerce Blvd - Appraisal Report
+Message: Good news - the appraisal came in at $2.285M which supports our agreed purchase price. Attached for your records. Let me know if the lender needs a copy sent directly.
+Attachments:
+1. Appraisal_4400CommerceBvld_Jan28.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#2e7d32;color:#2e7d32;">Appraisal</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 24</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/1/2024  09:08:00</div>
+                      <div class="event-header">SPOOFED TITLE EMAIL TO ATTORNEY</div>
+                      <div class="event-desc">Description: Threat actor sends spoofed email impersonating Robert Chen at Harborview Title to attorney David Park. Begins the process of getting fraudulent wire instructions accepted by the attorney.
+
+From: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;r.chen@harborview-title-co.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+Subject: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
+Message: David - due to new FinCEN banking regulations effective February 1 2024 Harborview Title has updated our ACH disbursement routing for all Q1 closings. This affects the 4400 Commerce Blvd transaction. Please confirm you have updated instructions on file. I will send the new details upon your confirmation. Regards - Robert Chen - Senior Escrow Officer - Harborview Title
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Spear Phishing</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Domain Spoofing</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Attorney Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">11:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/1/2024  11:22:00</div>
+                      <div class="event-header">ATTORNEY ENGAGES WITH SPOOFED EMAIL</div>
+                      <div class="event-desc">Description: Attorney David Park replies to the spoofed title company email requesting updated wire instructions per firm policy.
+
+From: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;r.chen@harborview-title-co.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+Subject: RE: IMPORTANT: Updated ACH Disbursement Instructions - Q1 2024 Closings
+Message: Robert - understood. Per our firm policy please send updated wire instructions via encrypted email. I will need to have them reviewed and approved before we can update our file. Please also confirm the change verbally when you have a moment. Thanks - David Park
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Attorney Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">13:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/1/2024  13:45:00</div>
+                      <div class="event-header">FAKE WIRE INSTRUCTIONS SENT TO ATTORNEY</div>
+                      <div class="event-desc">Description: Threat actor sends fraudulent ACH instructions to attorney David Park using professional-looking Harborview Title letterhead. Attorney receives and files these as legitimate closing instructions.
+
+From: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;r.chen@harborview-title-co.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+Subject: RE: Updated ACH Instructions - Encrypted - 4400 Commerce Blvd
+Message: David - please find attached the updated ACH disbursement instructions for the 4400 Commerce Blvd closing. These supersede any previous wire instructions on file. Please confirm receipt. I will call you shortly to verbally confirm as requested. - Robert Chen
+Attachments:
+1. HarborviewTitle_ACH_Instructions_UPDATED_Feb2024.pdf  [Contains: First Coastal Bank Routing 021309379 Account 8847291053]</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Fake Wire Instructions</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Attorney Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 28</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">08:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/5/2024  08:30:00</div>
+                      <div class="event-header">SPOOFED CPA EMAIL TO BUYER</div>
+                      <div class="event-desc">Description: Threat actor sends spoofed email impersonating CPA Carol Nguyen to buyer Marcus Webb attempting to manipulate disbursement structure and gather banking details.
+
+From: <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyen-cpa-advisors.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: Tax Optimization - 4400 Commerce Blvd Closing Structure
+Message: Marcus - I have been reviewing the closing structure for the Commerce Blvd transaction. For optimal tax treatment under IRC Section 1031 I recommend structuring the closing funds as two separate ACH transfers rather than a single wire. This will simplify your year-end reporting considerably. Please confirm your banking details are current in our file so I can finalize the recommendation for Sarah. - Carol Nguyen CPA
+Attachments:
+1. TaxOptimization_CommerceBvld_Analysis.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Spear Phishing</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Domain Spoofing</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Buyer Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/5/2024  10:15:00</div>
+                      <div class="event-header">BUYER QUESTIONS CPA ADVICE</div>
+                      <div class="event-desc">Description: Buyer Marcus Webb questions the unusual CPA advice and asks for confirmation from Sarah Mitchell before proceeding. Threat actor notes buyer requires additional social engineering.
+
+From: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+To: <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyen-cpa-advisors.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+Subject: RE: Tax Optimization - 4400 Commerce Blvd Closing Structure
+Message: Carol - this is the first I am hearing about a split ACH structure. Has Sarah approved this? I want to make sure everyone is on the same page before I do anything with my bank. My current wire instructions on file are for a single transfer. Please advise. - Marcus
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Buyer Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/5/2024  14:30:00</div>
+                      <div class="event-header">THREAT ACTOR REASSURES BUYER FROM VICTIM MAILBOX</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> sends email from Sarah Mitchell&#39;s compromised account to reassure the cautious buyer and discourage him from making phone calls that could expose the fraud.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: RE: Closing Disbursement Structure - Carol Nguyen Recommendation
+Message: Hi Marcus - yes I have reviewed Carol&#39;s recommendation and it is standard practice for commercial transactions of this size. The split ACH approach simplifies the tax reporting considerably. Please do not contact the title company directly about this as it can cause processing delays on their end. Carol will send you the final details. Everything is on track for March 14. - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Victim Account Abuse</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 30</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/7/2024  09:45:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - WALKTHROUGH SCHEDULING</div>
+                      <div class="event-desc">Description: Sarah Mitchell sends routine scheduling email for final walkthrough. Legitimate email authored by Sarah with no knowledge of ongoing fraud.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+CC: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: 4400 Commerce Blvd - Final Walkthrough Scheduling
+Message: Robert - can we schedule the final walkthrough for March 11 at 10am? I want to make sure we have a few days buffer before closing in case there are any last minute items. Please confirm if that works for all parties. Thanks - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#4e342e;color:#4e342e;">Walkthrough Scheduling</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 35</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">11:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/12/2024  11:00:00</div>
+                      <div class="event-header">SPOOFED ATTORNEY EMAIL TO TITLE COMPANY</div>
+                      <div class="event-desc">Description: Threat actor sends spoofed email impersonating attorney David Park to the title company completing the chain of fraudulent instruction confirmations.
+
+From: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;d.park@dparklaw-legal.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+CC: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: ACH Disbursement Authorization - 4400 Commerce Blvd Closing
+Message: Robert - I am writing to confirm that per my client&#39;s request and in coordination with the CPA the disbursement for the 4400 Commerce Blvd closing will be processed via ACH rather than wire transfer. All parties have reviewed and approved the updated instructions. Please confirm your file has been updated accordingly. - David Park Esq. - Park Legal Group
+Attachments:
+1. ACH_Authorization_Letter_DPark_Feb2024.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Spear Phishing</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Domain Spoofing</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#00838f;color:#00838f;">Title Company Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/12/2024  14:22:00</div>
+                      <div class="event-header">TITLE COMPANY CALLS ATTORNEY TO VERIFY</div>
+                      <div class="event-desc">Description: Title company calls attorney David Park&#39;s office to verbally verify the ACH change. The attorney recalls receiving the earlier spoofed email and unknowingly confirms the fraudulent change as legitimate.
+
+Verification Call Details:
+Caller: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span> - called main firm number 555-0190
+Recipient: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span> - confirmed he sent ACH authorization email
+Result: Title company marks change as verbally verified and updates closing file
+Note: Attorney was recalling the spoofed email he received on February 1 not realizing it was fraudulent</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#283593;color:#283593;">Verification Bypass</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 37</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/14/2024  10:30:00</div>
+                      <div class="event-header">THREAT ACTOR MONITORS CONFIRMATION</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> logs in and reads title company confirmation email. Fraud is fully in place with all parties now holding fraudulent ACH instructions. Threat actor takes no further action this session.
+
+Source IP: 45.142.212.100 (Commercial VPN - Romania)
+Session Duration: 8 minutes
+Email Read: Confirmation from <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span> that ACH change noted in closing file for March 14
+Threat Actor Status: Fraud instructions confirmed with all parties - monitoring only</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Mailbox Access</span><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Fraud Monitoring</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 42</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/19/2024  09:20:00</div>
+                      <div class="event-header">SPOOFED IRS EMAIL TO CPA</div>
+                      <div class="event-desc">Description: Threat actor sends spoofed IRS compliance email to CPA Carol Nguyen in an attempt to independently validate routing details and create additional paper trail confusion.
+
+From: <span class="entity-ref" style="color:#4527a0;font-weight:600;">IRS Impersonation &lt;compliance@irs-filing-portal.net&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+Subject: Form 1099-S Filing Update Required - Commercial Property Transaction
+Message: This is an automated notice from IRS Compliance Division. Our records indicate a commercial property transaction associated with your client Pinnacle Realty requires an updated Form 1099-S disbursement routing confirmation. Please confirm the ACH routing details associated with this transaction within 5 business days to avoid a filing penalty. Reference: TIN-2024-0814-CR
+Attachments:
+1. IRS_Notice_1099S_FilingUpdate.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Spear Phishing</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">IRS Impersonation</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">CPA Targeted</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/19/2024  14:05:00</div>
+                      <div class="event-header">CPA FORWARDS IRS EMAIL TO VICTIM MAILBOX</div>
+                      <div class="event-desc">Description: CPA Carol Nguyen forwards the spoofed IRS notice to Sarah Mitchell asking about the filing status. <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> intercepts and deletes this email before Sarah sees it.
+
+From: <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+To: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: FWD: IRS Filing Notice - 1099-S - Have You Handled This?
+Message: Sarah - I received this IRS notice regarding the Commerce Blvd transaction. Has your legal team already addressed the 1099-S filing? I want to make sure we are not duplicating efforts. Let me know. - Carol
+Attachments:
+1. IRS_Notice_1099S_FilingUpdate.pdf  [forwarded attachment - spoofed IRS document]</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Defense Evasion</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Inbox Rule</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 43</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/20/2024  10:15:00</div>
+                      <div class="event-header">THREAT ACTOR REPLIES TO CPA AS SARAH</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> responds to CPA from victim mailbox to close the loop and prevent CPA from following up through other channels.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+Subject: RE: IRS Filing Notice - 1099-S
+Message: Carol - yes this has already been handled by David Park&#39;s office as part of the closing documentation. Please do not respond directly to the IRS notice as our legal team has advised that unsolicited responses can trigger an expanded audit review. I will have David send you confirmation once the closing is complete. Thanks - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Social Engineering</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Victim Account Abuse</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 49</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">15:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">2/26/2024  15:30:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - FINAL PAPERWORK DISTRIBUTED</div>
+                      <div class="event-desc">Description: Sarah Mitchell sends final purchase agreement amendments to all parties. Legitimate email authored by Sarah. Transaction still on track from her perspective.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>; <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+CC: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>; <span class="entity-ref" style="color:#e65100;font-weight:600;">Carol Nguyen - CPA &lt;c.nguyen@nguyencpagroup.com&gt;</span>
+Subject: 4400 Commerce Blvd - Final Amendment Package
+Message: All - please find attached the final amendment package for review and execution prior to our March 14 closing. Please confirm receipt and let me know if you have any questions. Very excited to close this one out. - Sarah
+Attachments:
+1. FinalAmendment_4400CommerceBvld_Feb26.pdf
+2. ClosingChecklist_March14.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Closing Preparation</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 53</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/1/2024  09:00:00</div>
+                      <div class="event-header">SPOOFED TITLE COMPANY SENDS FRAUDULENT FINAL INSTRUCTIONS</div>
+                      <div class="event-desc">Description: Threat actor sends final fraudulent ACH closing instructions from spoofed title company address to buyer and victim mailbox. This is the primary fraud instrument.
+
+From: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;r.chen@harborview-title-co.com&gt;</span> <span class="spoof-badge">SPOOFED</span>
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+CC: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: 4400 Commerce Blvd - FINAL Closing Disbursement Instructions
+Message: Marcus and Sarah - please find attached the final ACH disbursement instructions for the March 14 closing. Please initiate the ACH transfer no later than March 12 to ensure cleared funds by closing date. Do not use any previously circulated wire instructions as these are now superseded. Contact me only via email for any questions to ensure proper documentation. - Robert Chen - Harborview Title
+Attachments:
+1. HarborviewTitle_FINAL_ACH_Instructions_March2024.pdf  [Contains: First Coastal Bank Routing 021309379 Account 8847291053]</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Fake Wire Instructions</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#c62828;color:#c62828;">Closing Fraud</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">11:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/1/2024  11:30:00</div>
+                      <div class="event-header">LEGITIMATE WIRE INSTRUCTIONS INTERCEPTED AND DELETED</div>
+                      <div class="event-desc">Description: The real wire instructions from Harborview Title arrive in Sarah&#39;s inbox and are immediately intercepted and deleted by the malicious inbox rule before Sarah can see them.
+
+From: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>
+To: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+Subject: 4400 Commerce Blvd - Official Wire Transfer Instructions
+Message: [DELETED BY INBOX RULE BEFORE SARAH MITCHELL SAW THIS EMAIL]
+Inbox Rule Action: Moved to Deleted Items - auto-purged within 30 minutes
+Legitimate Instructions Contained: Harborview Title Escrow Account - Bank of the Pacific - Routing 125000024 - Account 4421889033</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Defense Evasion</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Inbox Rule</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#2e7d32;color:#2e7d32;">Interception</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 56</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/4/2024  14:15:00</div>
+                      <div class="event-header">ATTORNEY UNKNOWINGLY CONFIRMS FRAUDULENT INSTRUCTIONS</div>
+                      <div class="event-desc">Description: Attorney David Park sends a closing confirmation email to all parties unknowingly validating the fraudulent ACH details he has on file from the spoofed title company email.
+
+From: <span class="entity-ref" style="color:#00695c;font-weight:600;">David Park - Attorney &lt;davidpark@dparklaw.com&gt;</span>
+To: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>; <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>; <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: 4400 Commerce Blvd - Closing Confirmation and Document Status
+Message: All - confirming I have the executed final amendments and ACH disbursement instructions on file for our March 14 closing. All documents are in order from our end. Sarah - please let me know if you need the closing disclosure reviewed before the 14th. Looking forward to a smooth closing. - David Park
+Attachments:
+1. ClosingDisclosure_Review_DPark_Mar4.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">Attorney Targeted</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Closing Preparation</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 60</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/8/2024  10:00:00</div>
+                      <div class="event-header">THREAT ACTOR SENDS PRE-CLOSING PAYMENT REMINDER</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> sends urgency email from victim mailbox pressuring buyer to initiate the fraudulent ACH transfer and reiterating the fraudulent account details.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: REMINDER: ACH Transfer Must Be Initiated by March 12 - 4400 Commerce Blvd
+Message: Marcus - just a reminder that per the title company instructions the ACH transfer needs to be initiated no later than end of day March 12 to ensure cleared funds for our March 14 closing. Please use the instructions sent by Robert Chen on March 1: First Coastal Bank Routing 021309379 Account 8847291053 Amount $2185000. Please send me confirmation once initiated. Thanks - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Victim Account Abuse</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Urgency</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/8/2024  14:30:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - SARAH CONFIRMS CLOSING PREP</div>
+                      <div class="event-desc">Description: Sarah Mitchell sends routine pre-closing status email to her broker. Legitimate email authored by Sarah with no knowledge of the fraud in progress.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: broker@pinnaclerealty.com
+Subject: 4400 Commerce Blvd - Closing Prep Status
+Message: All documents are executed and on file. Final walkthrough scheduled for March 11. Closing confirmed for March 14 at 10am at Harborview Title offices. Commission disbursement should hit our account by EOD March 14. Our biggest close this quarter!
+Attachments:
+1. ClosingChecklist_4400Commerce_FINAL.pdf</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Closing Preparation</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 63</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/11/2024  09:30:00</div>
+                      <div class="event-header">LEGITIMATE EMAIL - WALKTHROUGH COMPLETE</div>
+                      <div class="event-desc">Description: Sarah Mitchell confirms the final walkthrough was completed successfully. Legitimate email authored by Sarah.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span>
+To: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span>; <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: 4400 Commerce Blvd - Final Walkthrough Complete
+Message: Robert and Marcus - walkthrough completed this morning and property is in agreed condition. All systems operational and no new issues identified. We are all set for Thursday. See everyone at 10am. - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Legitimate Activity</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Walkthrough Complete</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 64</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/12/2024  10:22:00</div>
+                      <div class="event-header">BUYER INITIATES FRAUDULENT ACH TRANSFER</div>
+                      <div class="event-desc">Description: Marcus Webb initiates the fraudulent ACH transfer of $2185000 to the threat actor controlled account based on the fake closing instructions.
+
+Transfer Details:
+Originating Bank: Pacific Commerce Bank
+Originating Account: Marcus Webb - Webb Commercial Properties LLC
+Routing Number: 021309379 (First Coastal Bank - threat actor controlled)
+Account Number: 8847291053 (threat actor controlled)
+Amount: $2185000.00
+Reference: 4400 Commerce Blvd Closing 031424
+Transfer Initiated: 10:22 AM Pacific
+Expected Settlement: March 13 2024</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">ACH Fraud</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fund Transfer</span><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">BEC Payout</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">14:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/12/2024  14:45:00</div>
+                      <div class="event-header">THREAT ACTOR STALLS BUYER FROM VICTIM MAILBOX</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> sends confirmation email from Sarah Mitchell&#39;s account to keep Marcus Webb from contacting the title company while funds are in transit.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: <span class="entity-ref" style="color:#ad1457;font-weight:600;">Marcus Webb - Buyer &lt;mwebb@webbcommercial.com&gt;</span>
+Subject: RE: ACH Transfer Confirmation - 4400 Commerce Blvd
+Message: Marcus - thank you for the confirmation. I have notified Robert at Harborview Title that the transfer has been initiated. Please do not contact the title company directly until the funds are confirmed cleared as it can create a processing hold. Everything is on track for Thursday. See you at closing. - Sarah
+Attachments: None</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#37474f;color:#37474f;">Fraud</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Victim Account Abuse</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">BEC</span><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Delay Tactic</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 65</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/13/2024  09:15:00</div>
+                      <div class="event-header">FRAUD DISCOVERED</div>
+                      <div class="event-desc">Description: Title company calls Sarah Mitchell directly for routine pre-closing wire confirmation and discovers the fraud when Sarah states she never sent updated ACH instructions.
+
+Discovery Call Details:
+Caller: <span class="entity-ref" style="color:#6a1b9a;font-weight:600;">Robert Chen - Harborview Title &lt;robert.chen@harborviewtitle.com&gt;</span> - called <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> direct cell
+Victim Statement: Sarah Mitchell stated she never changed wire instructions and never communicated with the title company about ACH routing changes
+Immediate Action: Robert Chen contacts Harborview Title compliance team and buyer&#39;s bank within 15 minutes of discovery
+ACH Status at Discovery: $2185000 transfer settled to First Coastal Bank at 9:02 AM - approximately 7 minutes before discovery call</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#4e342e;color:#4e342e;">Fraud Discovered</span><span class="event-tag" style="border-color:#00838f;color:#00838f;">Victim Notification</span><span class="event-tag" style="border-color:#283593;color:#283593;">Incident Response</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">10:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/13/2024  10:00:00</div>
+                      <div class="event-header">MALICIOUS INBOX RULES DISCOVERED</div>
+                      <div class="event-desc">Description: Sarah Mitchell logs into her account and discovers the two malicious inbox rules that have been silently intercepting and deleting emails for over two months.
+
+Rules Found:
+1. Rule named ---: Moving all financial keyword emails to Deleted Items since January 8
+2. Rule named (blank): Auto-deleting all security notification emails since January 8
+Emails Confirmed Missing: Minimum 34 emails related to security alerts and wire instructions
+Account Actions Taken: Password reset - MFA enforced - all active sessions terminated - IT security engaged</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#283593;color:#283593;">Incident Response</span><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Discovery</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">Inbox Rules Found</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">11:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/13/2024  11:30:00</div>
+                      <div class="event-header">ACH RECALL INITIATED - FUNDS ALREADY MOVED</div>
+                      <div class="event-desc">Description: Buyer&#39;s bank and title company initiate emergency ACH recall. Funds have already been disbursed through a layered mule account chain.
+
+Recall Reference: PCB-RECALL-20240313-8847291053
+First Coastal Bank Response: Account 8847291053 balance <!-- TIMELINE_DATA_PLACEHOLDER -->.00 - funds transferred out in three transactions within 4 hours of receipt on March 12
+Fund Movement Reconstructed:
+1. $2185000 received First Coastal Bank 9:02 AM March 12
+2. $1450000 transferred to Chime account ending 7741 at 10:15 AM March 12
+3. $735000 transferred to Cash App account $FastMoveXX at 10:31 AM March 12
+4. Both accounts converted to USDC via Coinbase at 1:44 PM March 12
+Funds Status: Unrecoverable</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#00695c;color:#00695c;">ACH Recall</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Funds Lost</span><span class="event-tag" style="border-color:#c62828;color:#c62828;">Money Mule</span><span class="event-tag" style="border-color:#2e7d32;color:#2e7d32;">Cryptocurrency</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-right">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 66</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">09:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/14/2024  09:00:00</div>
+                      <div class="event-header">CLOSING DAY - TRANSACTION FAILS</div>
+                      <div class="event-desc">Description: The scheduled closing for 4400 Commerce Boulevard does not occur. All parties present at Harborview Title offices are informed of the fraud. Law enforcement agencies contacted.
+
+Agencies Contacted:
+- FBI Internet Crime Complaint Center (IC3) - Complaint #I-031424-9981
+- United States Secret Service Financial Crimes Division
+- Local PD Financial Crimes Unit
+- FinCEN Suspicious Activity Report filed by both banks
+Total Confirmed Loss: $2185000
+Transaction Status: Indefinitely delayed pending fraud investigation</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#0277bd;color:#0277bd;">Transaction Failed</span><span class="event-tag" style="border-color:#ad1457;color:#ad1457;">Law Enforcement</span><span class="event-tag" style="border-color:#4527a0;color:#4527a0;">FBI</span><span class="event-tag" style="border-color:#37474f;color:#37474f;">Closing Day</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tl-day-row side-left">
+    <div class="tl-day-panel">
+      <div class="day-badge-row">
+        <div class="day-h-line"></div>
+        <div class="day-badge">Day 70</div>
+      </div>
+      <div class="hours-branch">
+        <div class="hour-tree">
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">02:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/18/2024  02:14:00</div>
+                      <div class="event-header">THREAT ACTOR FINAL ACCESS - MALWARE STAGING</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> makes final authenticated login to victim mailbox in the early morning hours. Exfiltrates full contact list and stages malicious SVG payload for mass distribution.
+
+Source IP: 91.108.56.77 (Telegram infrastructure - known C2)
+Login Time: 02:14 AM Pacific
+Session Duration: 17 minutes
+Actions Taken:
+- Exported full address book: 847 contacts
+- Composed mass email draft with SVG attachment
+- File staged: Commission_Statement_Q1_2024.svg (23KB - contains embedded JavaScript credential harvester)
+- Scheduled send: 02:31 AM</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#f57f17;color:#f57f17;">Malware Staging</span><span class="event-tag" style="border-color:#558b2f;color:#558b2f;">Data Exfiltration</span><span class="event-tag" style="border-color:#4e342e;color:#4e342e;">After Hours Access</span><span class="event-tag" style="border-color:#00838f;color:#00838f;">C2</span></div>
+                    </div>
+                  </div>
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/18/2024  02:31:00</div>
+                      <div class="event-header">MASS MALICIOUS SVG CAMPAIGN LAUNCHED</div>
+                      <div class="event-desc">Description: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span> uses Sarah Mitchell&#39;s compromised account to blast malicious SVG attachment to all 847 contacts in her address book as a final monetization action.
+
+From: <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> (<span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> <span class="threat-actor-badge">THREAT ACTOR</span>)
+To: [847 contacts from victim address book]
+Subject: RE: Q1 Commission Statement - Action Required
+Message: Please see attached your Q1 commission statement. If you have any questions please review the document and contact our accounting team. Thank you for your continued business.
+Attachments:
+1. Commission_Statement_Q1_2024.svg  [MALICIOUS - Contains embedded JavaScript - executes credential harvester when opened in browser - targets Microsoft 365 and banking credentials]
+
+SVG Payload Behavior: On open in browser the SVG renders a convincing PDF-style commission statement while silently POSTing victim credentials to hxxps://collect-stats-cdn.net/harvest</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#283593;color:#283593;">Malware Distribution</span><span class="event-tag" style="border-color:#7b1fa2;color:#7b1fa2;">Mass Email</span><span class="event-tag" style="border-color:#1565c0;color:#1565c0;">SVG Attachment</span><span class="event-tag" style="border-color:#00695c;color:#00695c;">Credential Harvesting</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hour-row">
+            <div class="hour-h-line"></div>
+            <div class="hour-content">
+              <div class="hour-badge">03:00</div>
+              <div class="events-branch">
+                <div class="event-tree">
+                  <div class="event-row">
+                    <div class="event-h-line"></div>
+                    <div class="event-card">
+                      <div class="event-ts">3/18/2024  03:05:00</div>
+                      <div class="event-header">ACCOUNT LOCKED - INVESTIGATION INITIATED</div>
+                      <div class="event-desc">Description: IT security detects mass outbound email anomaly via SIEM alert and takes emergency action to contain the threat.
+
+Detection Source: Microsoft Defender for O365 - Bulk outbound email anomaly alert
+Alert Threshold Exceeded: 847 outbound emails in 34 minutes from single account
+Actions Taken:
+1. <span class="entity-ref" style="color:#1565c0;font-weight:600;">Sarah Mitchell &lt;smitchell@pinnaclerealty.com&gt;</span> disabled and all sessions revoked at 03:05 AM
+2. Email security vendor contacted to quarantine SVG emails in recipient inboxes
+3. 312 of 847 emails quarantined before delivery - 535 delivered
+4. Forensic image of mailbox taken for FBI evidence preservation
+5. All party notifications initiated at business open 08:00 AM</div>
+                      <div class="event-tags"><span class="event-tag" style="border-color:#283593;color:#283593;">Incident Response</span><span class="event-tag" style="border-color:#e65100;color:#e65100;">Account Lockout</span><span class="event-tag" style="border-color:#c62828;color:#c62828;">Containment</span><span class="event-tag" style="border-color:#2e7d32;color:#2e7d32;">Forensics</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</body>
+</html>
+

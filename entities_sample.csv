@@ -1,0 +1,7 @@
+Entity,RealEmail,SpoofedEmails
+Sarah Mitchell,smitchell@pinnaclerealty.com,THREAT_ACTOR
+Robert Chen - Harborview Title,robert.chen@harborviewtitle.com,r.chen@harborview-title-co.com
+David Park - Attorney,davidpark@dparklaw.com,d.park@dparklaw-legal.com
+Carol Nguyen - CPA,c.nguyen@nguyencpagroup.com,c.nguyen@nguyen-cpa-advisors.com
+IRS Impersonation,,compliance@irs-filing-portal.net
+Marcus Webb - Buyer,mwebb@webbcommercial.com,
